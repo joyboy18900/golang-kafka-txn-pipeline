@@ -8,11 +8,13 @@ Base URL: `http://localhost:8080`
 docker-compose up
 ```
 
-On boot the app runs pending migrations, creates both Kafka topics if they
-do not exist yet, then serves on `:8080`. No request is needed to start the
-pipeline. A background producer goroutine publishes a synthetic event every
-`producer.interval_ms` (500ms by default), and three consumer goroutines
-process them continuously.
+On boot the app runs pending migrations, then creates both Kafka topics via
+`kafka.Conn.CreateTopics` if they do not exist yet. This is deliberate:
+broker auto-create defaults would not guarantee the partition counts below,
+so the app provisions both topics itself before serving on `:8080`. No
+request is needed to start the pipeline. A background producer goroutine
+publishes a synthetic event every `producer.interval_ms` (500ms by
+default), and three consumer goroutines process them continuously.
 
 ## Topics in use
 
@@ -20,6 +22,17 @@ process them continuously.
 |---|---|---|---|
 | `transactions.events` | 6 | background producer | consumer group `txn-consumer-group` (3 consumers) |
 | `transactions.events.dlq` | 1 | a consumer, after retries are exhausted | none in this codebase (audit trail only); the actual read path is the `dead_letter_events` table below |
+
+The main topic is keyed by `account_id` (`kafka.Hash` balancer), so events
+for the same account land on the same partition and process in order. That
+matters once non-commutative events, like reversals, exist. Trade-off: a
+single high-traffic account cannot parallelize past its one partition. A
+random key would spread load evenly but break per-account ordering.
+
+The DLQ is a separate topic instead of reusing the main one. Mixing retried
+and fresh events on one topic would force every consumer to distinguish
+"already given up on" messages from new work, and a slow poison-pill event
+could block everything queued behind it on that partition.
 
 ## Endpoints
 
@@ -88,8 +101,11 @@ curl http://localhost:8080/accounts/acct-3/balance
 ### `GET /dead-letter-events?page=&limit=`
 
 Events that failed validation, or failed all retry attempts against
-Postgres. `producer.poison_pill_ratio` (default 0.05) guarantees this path
-gets exercised on every run.
+Postgres. Validation failures (bad JSON, missing `account_id`, non-positive
+`amount_cents`) skip retry entirely and go straight here, since retrying an
+already-invalid event cannot succeed. Retryable failures get 3 attempts
+total, with 100ms then 200ms backoff between them. `producer.poison_pill_ratio`
+(default 0.05) guarantees this path gets exercised on every run.
 
 ```bash
 curl "http://localhost:8080/dead-letter-events?page=1&limit=20"
