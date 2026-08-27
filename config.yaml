@@ -1,0 +1,26 @@
+app:
+  port: 8080
+
+db:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: postgres
+  name: golang_kafka_txn_pipeline
+  sslmode: disable
+
+kafka:
+  brokers: localhost:29092
+  topic: transactions.events
+  dlq_topic: transactions.events.dlq
+  partitions: 6
+  group_id: txn-consumer-group
+  consumer_count: 3
+
+producer:
+  interval_ms: 500
+  poison_pill_ratio: 0.05
+
+retry:
+  max_attempts: 3
+  base_backoff_ms: 100
