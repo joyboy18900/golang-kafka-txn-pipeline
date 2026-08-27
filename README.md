@@ -30,6 +30,8 @@ serves on `:8080`.
 - `GET /accounts/:account_id/balance`
 - `GET /dead-letter-events?page=&limit=`
 
+See `curl/flow.md` for full request/response examples.
+
 ## Tests
 
 ```bash
