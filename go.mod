@@ -5,6 +5,7 @@ go 1.26.4
 require (
 	github.com/gofiber/fiber/v2 v2.52.15
 	github.com/golang-migrate/migrate/v4 v4.19.1
+	github.com/google/uuid v1.6.0
 	github.com/segmentio/kafka-go v0.4.51
 	github.com/spf13/viper v1.21.0
 	go.uber.org/mock v0.6.0
@@ -17,7 +18,6 @@ require (
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
