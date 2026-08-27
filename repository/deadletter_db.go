@@ -18,7 +18,7 @@ type deadLetterEventRow struct {
 	Payload        []byte
 	FailureReason  string
 	AttemptCount   int
-	FailedAt       time.Time
+	FailedAt       time.Time `gorm:"autoCreateTime"`
 }
 
 func (deadLetterEventRow) TableName() string {

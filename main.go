@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"golang-kafka-txn-pipeline/handler"
 	"golang-kafka-txn-pipeline/logs"
 	"golang-kafka-txn-pipeline/repository"
 	"golang-kafka-txn-pipeline/service"
@@ -96,7 +97,14 @@ func main() {
 		}
 	}()
 
+	transactionSvc := service.NewTransactionService(transactionRepo, deadLetterRepo)
+	transactionHdlr := handler.NewTransactionHandler(transactionSvc)
+
 	app := fiber.New()
+	app.Get("/health", transactionHdlr.Health)
+	app.Get("/transactions", transactionHdlr.List)
+	app.Get("/accounts/:account_id/balance", transactionHdlr.GetBalance)
+	app.Get("/dead-letter-events", transactionHdlr.ListDeadLetterEvents)
 
 	go func() {
 		port := viper.GetString("app.port")
