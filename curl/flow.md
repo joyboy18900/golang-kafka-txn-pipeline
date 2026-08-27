@@ -10,7 +10,7 @@ docker-compose up
 
 On boot the app runs pending migrations, creates both Kafka topics if they
 do not exist yet, then serves on `:8080`. No request is needed to start the
-pipeline - a background producer goroutine publishes a synthetic event every
+pipeline. A background producer goroutine publishes a synthetic event every
 `producer.interval_ms` (500ms by default), and three consumer goroutines
 process them continuously.
 
@@ -19,7 +19,7 @@ process them continuously.
 | Topic | Partitions | Written by | Read by |
 |---|---|---|---|
 | `transactions.events` | 6 | background producer | consumer group `txn-consumer-group` (3 consumers) |
-| `transactions.events.dlq` | 1 | a consumer, after retries are exhausted | none in this codebase - kept as an audit trail; the actual read path is the `dead_letter_events` table below |
+| `transactions.events.dlq` | 1 | a consumer, after retries are exhausted | none in this codebase (audit trail only); the actual read path is the `dead_letter_events` table below |
 
 ## Endpoints
 
