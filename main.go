@@ -55,6 +55,10 @@ func main() {
 	dlqProducerRepo := repository.NewProducerRepositoryKafka(brokers, dlqTopic)
 	defer dlqProducerRepo.Close()
 
+	mainProducerRepo := repository.NewProducerRepositoryKafka(brokers, mainTopic)
+	defer mainProducerRepo.Close()
+	producerSvc := service.NewProducerService(mainProducerRepo, viper.GetFloat64("producer.poison_pill_ratio"))
+
 	maxAttempts := viper.GetInt("retry.max_attempts")
 	baseBackoff := time.Duration(viper.GetInt("retry.base_backoff_ms")) * time.Millisecond
 
@@ -76,6 +80,21 @@ func main() {
 			runConsumerLoop(ctx, name, eventSvc)
 		}()
 	}
+
+	ticker := time.NewTicker(time.Duration(viper.GetInt("producer.interval_ms")) * time.Millisecond)
+	defer ticker.Stop()
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if err := producerSvc.GenerateAndPublish(ctx); err != nil {
+					logs.Error(err)
+				}
+			}
+		}
+	}()
 
 	app := fiber.New()
 
